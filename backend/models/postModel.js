@@ -1,5 +1,19 @@
 import mongoose from "mongoose";
 
+const ticketSchema = mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
+    quantity: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
+    // Add any other ticket-related fields here
+});
+
 const postSchema = mongoose.Schema(
 	{
 		postedBy: {
@@ -58,7 +72,22 @@ const postSchema = mongoose.Schema(
 			type: Number,
 			required: false,
 			default: 0,
-		}
+		},
+		// event
+		ticket_count:{
+			type: Number,
+			required: false,
+			default:0
+		},
+		ticket_price:{
+			type:Number,
+			required: false,
+		},
+		event_date:{
+			type: Date,
+			required: false,
+		},
+		tickets: [ticketSchema],
 	},
 	{
 		timestamps: true,

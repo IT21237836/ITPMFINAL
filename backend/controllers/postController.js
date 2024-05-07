@@ -148,7 +148,9 @@ const getFeedPosts = async (req, res) => {
 		const feedPosts = await Post.find({
             $or: [
                 { postedBy: { $in: following } },
-                { post_type: 1 }
+                { post_type: 0 },
+				{ post_type: 1 },
+				{ post_type: 2 }
             ]
         }).sort({ createdAt: -1 });
 
@@ -260,4 +262,117 @@ const getSellerPosts = async (req, res) => {
 	}
 };
 
-export { createPost, getPost, deletePost, likeUnlikePost, replyToPost, getFeedPosts, getUserPosts, getSellerPosts, createSellerPost, updateSellerPost };
+const createEvent = async (req, res) => {
+	try {
+		const { postedBy, text, ticket_count, ticket_price, event_date } = req.body;
+		let { img } = req.body;
+		const post_type = 2;
+
+		if (!postedBy || !text) {
+			return res.status(400).json({ error: "Postedby and text fields are required" });
+		}
+
+		const user = await User.findById(postedBy);
+		if (!user) {
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		if (img) {
+			const uploadedResponse = await cloudinary.uploader.upload(img);
+			img = uploadedResponse.secure_url;
+		}
+
+		const newEvent = new Post({ postedBy, text, img, ticket_count, ticket_price, event_date, post_type });
+		await newEvent.save();
+
+		console.log(newEvent);
+
+		res.status(201).json(newEvent);
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+		console.log(err);
+	}
+};
+
+const getEvents = async (req, res) => {
+	const { userId } = req.params;
+	console.log(userId);
+	try {
+		const user = await User.findById(userId);
+		if (!user) {
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		const events = await Post.find({ post_type: 2, postedBy: user._id }).sort({ createdAt: -1 }).populate('tickets.userId');
+
+		res.status(200).json(events);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+const buyEventTicket = async (req, res) => {
+    const { eventId, userId } = req.params;
+    const { quantity } = req.body;
+
+    try {
+        const post = await Post.findById(eventId);
+
+        if (!post) {
+            return res.status(404).json({ error: "Event not found" });
+        }
+
+        const newTicket = {
+            userId: userId,
+            quantity: quantity,
+        };
+
+        post.tickets.push(newTicket);
+
+        post.ticket_count -= parseInt(quantity);
+
+        const updatedPost = await post.save();
+
+        res.status(200).json({ success: true, post: updatedPost });
+    } catch (error) {
+        console.error("Error buying ticket:", error);
+        res.status(500).json({ error: "Error while buying ticket" });
+    }
+};
+
+const updateEvent = async (req, res) => {
+	try {
+		const { text, ticket_count, ticket_price, event_date, imgChanged } = req.body;
+		const {eventId} = req.params
+		let { img } = req.body;
+
+		if (!eventId ) {
+			return res.status(400).json({ error: "Event Id and text fields are required" });
+		}
+
+		const event = await Post.findById(eventId);
+		if (!event) {
+			return res.status(404).json({ error: "Event not found" });
+		}
+
+		if (imgChanged && img) {
+			const uploadedResponse = await cloudinary.uploader.upload(img);
+			img = uploadedResponse.secure_url;
+		}
+
+		event.text = text;
+		event.img = img;
+		event.ticket_count = ticket_count;
+		event.ticket_price =  ticket_price;
+		event.event_date =  event_date;
+
+		await event.save();
+
+		res.status(201).json(event);
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+		console.log(err);
+	}
+};
+
+export { createPost, getPost, deletePost, likeUnlikePost, replyToPost, getFeedPosts, getUserPosts, getSellerPosts, createSellerPost, updateSellerPost, createEvent,getEvents,buyEventTicket,updateEvent };

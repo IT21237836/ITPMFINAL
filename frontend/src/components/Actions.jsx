@@ -54,6 +54,7 @@ const Actions = ({ post }) => {
 	const [reply, setReply] = useState("");
 
 	const [checkoutModalOpen, setCheckoutModalOpen] = useState(false)
+	const [eventModalOpen, setEventModalOpen] = useState(false)
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [seller, setSeller] = useState(post?.postedBy);
 
@@ -83,6 +84,15 @@ const Actions = ({ post }) => {
 		setAddress("")
 		setContact_number(0)
 		setTotal("")
+	}
+
+	const openEventActiveModal = () => {
+        setEventModalOpen(true);
+    };
+
+	const closeEventModal = () => {
+        setEventModalOpen(false);
+		setQuantity(0)
 	}
 
 	const showToast = useShowToast();
@@ -204,6 +214,45 @@ const Actions = ({ post }) => {
 		}
 	};
 
+	const buyTicket = async (event) => {
+		setIsSubmitting(true);
+		let isSuccess = true;
+	
+		if (!quantity) {
+		  Swal.fire({
+			icon: "error",
+			title: "Oops...",
+			text: "Please fill all the fields",
+			footer: '<a href="">Why do I have this issue?</a>',
+		  });
+		  isSuccess = false;
+		}
+	
+		if (isSuccess) {
+		  try {
+			const res = await fetch(`/api/posts/buy-event-ticket/${post._id}/${lg_user?._id}`, {
+			  method: "PUT",
+			  headers: {
+				"Content-Type": "application/json",
+			  },
+			  body: JSON.stringify({ quantity: quantity}),
+			});
+	
+			const data = await res.json();
+	
+			  setQuantity(0);
+			  setIsSubmitting(false);
+	
+			  showToast("Success", "You reserved a event ticket", "success");
+			  closeEventModal();
+
+		  } catch (error) {
+			setIsSubmitting(false);
+			showToast("Oops..", "Error while buying ticket", "error");
+		  }
+		}
+	};
+
 	return (
 		<Flex flexDirection='column'>
 			<Flex gap={3} my={2} onClick={(e) => e.preventDefault()}>
@@ -249,6 +298,11 @@ const Actions = ({ post }) => {
 				{post?.post_type === 1 && 
 					<Button colorScheme='teal' size='xs' onClick={openSellingActiveModal} disabled={parseInt(post?.quantity) <= 0}>
 						Check Out
+					</Button>
+				}
+				{post?.post_type === 2 && 
+					<Button colorScheme='teal' size='xs' onClick={openEventActiveModal} disabled={parseInt(post?.quantity) <= 0}>
+						Buy Ticket
 					</Button>
 				}
 			</Flex>
@@ -368,6 +422,79 @@ const Actions = ({ post }) => {
 					CheckOut
 				  </Button>
 				  <Button onClick={closeSellingActiveModal}>Discard</Button>
+				</ModalFooter>
+			  </ModalContent>
+			</Modal>
+
+			<Modal
+			  initialFocusRef={initialRef}
+			  finalFocusRef={finalRef}
+			  isOpen={eventModalOpen}
+			  onClose={closeEventModal}
+			>
+			  <ModalOverlay />
+			  <ModalContent>
+				<ModalHeader>Buy Event Ticket</ModalHeader>
+				<ModalCloseButton />
+				<ModalBody pb={6}>
+
+				{isSubmitting ? (
+					<div style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
+						<Spinner thickness='4px' speed='0.65s' emptyColor='gray.200' color='blue.500' size='xl' />
+					</div>
+				) : (
+					<>
+						<FormControl>
+							<Text fontSize='xl'>Available Tickets : {post?.ticket_count}</Text>
+							</FormControl>
+							<FormControl>
+							<Text fontSize='xl'>Ticket Price : {post?.ticket_price}.00</Text>
+						</FormControl>
+						<Divider />
+						<FormControl mt={4}>
+
+							<Menu>
+							<MenuButton as={Button} rightIcon={<ArrowDropDownIcon />}
+							transition="all 0.001s"
+							borderRadius="md"
+							borderWidth="0px"
+							_hover={{ bg: "gray.400" }}
+							_expanded={{ bg: "blue.400" }}
+							_focus={{ boxShadow: "none" }}
+							style={{ marginTop: "30px", marginLeft: "30px" }}
+							>
+								{quantity?"No of tickets : "+quantity:"Select Ticket Count"}
+							</MenuButton>
+							<MenuList maxHeight="200px" overflowY="auto" >
+								{[...Array(post?.ticket_count)].map((_, index) => (
+									<MenuItem key={index} value={index + 1}
+									onClick={() => {
+										const selectedQuantity = parseInt(index + 1);
+										setQuantity(selectedQuantity);
+										setTotal(selectedQuantity * parseInt(post?.ticket_price));
+									}}
+									>
+										{index + 1}
+									</MenuItem>
+								))}
+							</MenuList>
+							</Menu>
+						</FormControl>
+
+						<FormControl mt={4}>
+							<FormLabel>Total</FormLabel>
+							<Input type="number" disabled htmlSize={4} width='100%' value={total?total+".00":""}/>
+						</FormControl>
+				  </>
+				)
+			}
+				</ModalBody>
+	  
+				<ModalFooter>
+				  <Button colorScheme='blue' mr={3} onClick={buyTicket}>
+					Buy Ticket
+				  </Button>
+				  <Button onClick={closeEventModal}>Close</Button>
 				</ModalFooter>
 			  </ModalContent>
 			</Modal>

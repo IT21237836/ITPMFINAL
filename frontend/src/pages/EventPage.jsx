@@ -1,6 +1,17 @@
 import React, {useEffect} from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Text, Divider } from "@chakra-ui/react";
+import { Button, Text, Divider, Popover,
+    PopoverTrigger,
+    PopoverContent,
+    PopoverHeader,
+    PopoverBody,
+    PopoverFooter,
+    PopoverArrow,
+    PopoverCloseButton,
+    PopoverAnchor,ListItem,
+    ListIcon,
+    OrderedList,
+    UnorderedList } from "@chakra-ui/react";
 import useShowToast from "../hooks/useShowToast";
 import useLogout from "../hooks/useLogout";
 import { useState } from "react";
@@ -8,6 +19,7 @@ import EventScheduledModel from "../components/EventScheduleModel";
 import Events from "../components/event/Events";
 import { Grid, GridItem } from '@chakra-ui/react'
 import { Card, CardHeader, CardBody, CardFooter,Stack, Heading, Image } from '@chakra-ui/react'
+import EventUpdatedModel from "../components/EventUpdateModal";
 
 
 export const EventPage = () => {
@@ -18,63 +30,68 @@ export const EventPage = () => {
 
     const [user,setUser] = useState(JSON.parse(localStorage.getItem('user-backend')))
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [event, setEvent] = useState(null);
 
-    const [events, setEvent] = useState([1,2,3,4,5,6,7,8,9,10])
+    const [events, setEvents] = useState([])
 
-    const openSellingActiveModal = () => {
+    const openEventModal = () => {
         setIsModalOpen(true);
     };
 
-    const closeSellingActiveModal = () => {
+    const closeEventModal = () => {
         setIsModalOpen(false);
+    };
+
+    const openEventUpdateModal = (event) => {
+        setEvent(event)
+        setIsUpdateModalOpen(true);
+    };
+
+    const closeEventUpdateModal = () => {
+        setEvent(null)
+        setIsUpdateModalOpen(false);
     };
 
     useEffect(() => {
       setUser(JSON.parse(localStorage.getItem('user-backend')))
+      getEventByUserId()
     }, [])
-    
 
-    const freezeAccount = async () => {
-        if (!window.confirm("Are you sure you want to freeze your account?")) return;
-
+    const getEventByUserId= async () => {
+        const userId = user?._id
         try {
-            const res = await fetch("/api/users/freeze", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
+
+            const res = await fetch(`/api/posts/get-events-by-user-id/${userId}`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" }
             });
             const data = await res.json();
+            console.log(data);
 
-            if (data.error) {
-                return showToast("Error", data.error, "error");
-            }
-            if (data.success) {
-                await logout();
-                showToast("Success", "Your account has been frozen", "success");
-            }
+            setEvents(data);
         } catch (error) {
-            showToast("Error", error.message, "error");
+          showToast("Error", "Error getting events", "error");
         }
-    };
+      };
+    
 
-    const deleteAccount = async () => {
-        if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
+
+    const deleteEvent = async (eventId) => {
+        if (!window.confirm("Are you sure you want to delete event? This action cannot be undone.")) return;
 
         try {
-            const res = await fetch("/api/users/delete", {
+            await fetch(`/api/posts/${eventId}`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
             });
-            const data = await res.json();
 
-            if (data.error) {
-                return showToast("Error", data.error, "error");
-            }
-            if (data.success) {
-                await logout();
-                showToast("Success", "Your account has been deleted", "success");
-            }
+        
+                showToast("Success", "Your event has been deleted", "success");
+                getEventByUserId()
+            
         } catch (error) {
-            showToast("Error", error.message, "error");
+            showToast("Error", "failed to delete event", "error");
         }
     };
 
@@ -89,7 +106,7 @@ export const EventPage = () => {
             <Divider my={4} />
 
             <Text my={1}>Publish event to threads:</Text>
-            <Button size={"sm"} colorScheme="red" onClick={freezeAccount} mr={2}>
+            <Button size={"sm"} colorScheme="red" onClick={openEventModal} mr={2}>
                 Create New Event    
             </Button>
 
@@ -113,23 +130,58 @@ export const EventPage = () => {
                     <Image
                         objectFit='cover'
                         maxW={{ base: '100%', sm: '200px' }}
-                        src='https://images.unsplash.com/photo-1667489022797-ab608913feeb?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHw5fHx8ZW58MHx8fHw%3D&auto=format&fit=crop&w=800&q=60'
-                        alt='Caffe Latte'
+                        src={event?.img}
+                        alt='Event poster'
                     />
 
                     <Stack>
                         <CardBody>
-                        <Heading size='md'>The perfect latte</Heading>
+                        <Heading size='md'>{event?.text}</Heading>
 
-                        <Text py='2'>
-                            Caffè latte is a coffee beverage of Italian origin made with espresso
-                            and steamed milk.
+                        <Text py='2'> 
+                            Event Date : {event?.event_date}
                         </Text>
+                        <Text py='2'> 
+                            Ticket Count : {event?.ticket_count}
+                        </Text>
+                        <Text py='2'> 
+                            Ticket Price : {event?.ticket_price}
+                        </Text>
+
+                        <Popover placement="top">
+                        <PopoverTrigger>
+                            <Button> Buyers</Button>
+                        </PopoverTrigger>
+                        <PopoverContent maxH="200px" overflowY="auto">
+                            <PopoverArrow />
+                            <PopoverCloseButton />
+                            <PopoverHeader>Ticket Buyers</PopoverHeader>
+                            <PopoverBody>
+                                <UnorderedList>
+                                    {event && event.tickets?.length > 0 && event.tickets.map((ticket, index) => (
+                                        <React.Fragment key={index}>
+                                            <ListItem>
+                                                Buyer: {ticket?.userId?.name}
+                                            </ListItem>
+                                            <ListItem>
+                                                Quantity: {ticket?.quantity}
+                                            </ListItem>
+                                            {index < event.tickets.length - 1 && <Divider />}
+                                        </React.Fragment>
+                                    ))}
+                                </UnorderedList>
+                            </PopoverBody>
+                        </PopoverContent>
+                    </Popover>
+
                         </CardBody>
 
                         <CardFooter>
-                        <Button variant='solid' colorScheme='blue'>
-                            Buy Latte
+                        <Button variant='solid' colorScheme='blue' onClick={()=>openEventUpdateModal(event)}>
+                            Update
+                        </Button>
+                        <Button variant='solid' colorScheme='red' style={{marginLeft:'10px'}} onClick={()=>deleteEvent(event._id)}>
+                            Delete
                         </Button>
                         </CardFooter>
                     </Stack>
@@ -141,7 +193,8 @@ export const EventPage = () => {
             </Grid>
 
 
-            <EventScheduledModel isOpen={isModalOpen} onClose={closeSellingActiveModal} />
+            <EventScheduledModel isOpen={isModalOpen} onClose={closeEventModal} />
+            <EventUpdatedModel isOpen={isUpdateModalOpen} onClose={closeEventUpdateModal} event={event}/>
         </>
     );
 };

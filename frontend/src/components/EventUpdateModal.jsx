@@ -31,17 +31,11 @@ const style = {
 const themeRtl = createTheme({
   });
 
-export default function EventScheduledModel({isOpen, onClose}) {
+export default function EventUpdatedModel({isOpen, onClose, event}) {
 
     const fileInput = React.useRef();
 
     const [user,setUser] = React.useState(JSON.parse(localStorage.getItem('user-backend')))
-
-    useEffect(() => {
-        if(!user){
-        setUser(JSON.parse(localStorage.getItem('user-backend')))
-        }
-    }, [user])
     
 
     const {handleImageChange, imgUrl, setImgUrl} = usePreviewImg()
@@ -49,63 +43,81 @@ export default function EventScheduledModel({isOpen, onClose}) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [ticket_price, setTicket_price] = useState(0)
     const [ticket_count, setTicket_count] = useState(0)
+    const [imgChanged, setImgChanged] = useState(false)
 
-    const publishEvent = async () => {
-    if (!window.confirm("Are you sure you want to active selling account?")) return;
+    useEffect(() => {
+        if(!user){
+        setUser(JSON.parse(localStorage.getItem('user-backend')))
+        }
+        if(event){
+            setImgUrl(event?.img)
+            setText(event?.text)
+            setSelectedDate(new Date(event?.event_date))
+            setTicket_price(event?.ticket_price)
+            setTicket_count(event?.ticket_count)
+        }
+    }, [user,event])
 
-    if(!selectedDate){
-      alert("Date is required")
-      return
-    }
-    else if(!ticket_price){
-      alert("Ticket price is required")
-      return
-    }
-    else if(!ticket_count){
-      alert("Ticket count is required")
-      return
-    }
-    else if(!text){
-        alert("Event title is required")
+    const updateEvent = async () => {
+        if (!window.confirm("Are you sure you want to update event?")) return;
+
+        if(!selectedDate){
+        alert("Date is required")
         return
-    }
-    else if(!imgUrl){
-        alert("Event Image is required")
+        }
+        else if(!ticket_price){
+        alert("Ticket price is required")
         return
-    }
-    else{
+        }
+        else if(!ticket_count){
+        alert("Ticket count is required")
+        return
+        }
+        else if(!text){
+            alert("Event title is required")
+            return
+        }
+        else if(!imgUrl){
+            alert("Event Image is required")
+            return
+        }
+        else{
 
-      try {
-        const res = await fetch("/api/posts/create-event", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ postedBy: user._id, text: text, img: imgUrl, ticket_count:ticket_count, ticket_price:ticket_price, event_date:selectedDate }),
-        });
+            if(imgUrl !== event.img){
+                setImgChanged(true)
+            }
 
-        const data = await res.json();
-        setImgUrl(null)
-        setText('')
-        setSelectedDate(new Date())
-        setTicket_price(0)
-        setTicket_count(0)
-        onClose()
-        Swal.fire({
-          icon: "success",
-          title: "Published",
-          text: "Event published successfully",
-        });
-        
-      } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Error while creating event",
-        });
-      }
+        try {
+            const res = await fetch(`/api/posts/update-event/${event?._id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ text: text, img: imgUrl, ticket_count:ticket_count, ticket_price:ticket_price, event_date:selectedDate, imgChanged:imgChanged }),
+            });
 
-    }
+            const data = await res.json();
+            setImgUrl(null)
+            setText('')
+            setSelectedDate(new Date())
+            setTicket_price(0)
+            setTicket_count(0)
+            onClose()
+            Swal.fire({
+            icon: "success",
+            title: "Updated",
+            text: "Event updated successfully",
+            });
+            
+        } catch (error) {
+            Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Error while updating event",
+            });
+        }
+
+        }
 
     };
 
@@ -138,7 +150,7 @@ export default function EventScheduledModel({isOpen, onClose}) {
             </Button>
         </Tooltip>
 
-        <TextField onChange={(e)=>setText(e.target.value)} id="filled-basic" label="Event Title" variant="outlined" sx={{width:'100%', mt:'20px'}} size="small"/>
+        <TextField value={text} onChange={(e)=>setText(e.target.value)} id="filled-basic" label="Event Title" variant="outlined" sx={{width:'100%', mt:'20px'}} size="small"/>
 
 
           <div style={{ marginTop: '20px', width: '100%' }}>
@@ -159,15 +171,16 @@ export default function EventScheduledModel({isOpen, onClose}) {
           label="Number Of Tickets"
           variant="outlined"
           type='number'
+          value={ticket_count}
           sx={{width:'100%', mt:'20px'}}
           size="small"
           onChange={(e)=>setTicket_count(e.target.value)}
         />
 
-          <TextField type='number' onChange={(e)=>setTicket_price(e.target.value)} id="filled-basic" label="Ticket Price" variant="outlined" sx={{width:'100%', mt:'20px'}} size="small"/>
+          <TextField value={ticket_price} type='number' onChange={(e)=>setTicket_price(e.target.value)} id="filled-basic" label="Ticket Price" variant="outlined" sx={{width:'100%', mt:'20px'}} size="small"/>
 
           <div style={{display:'flex',justifyContent:'end', marginTop:'30px'}}>
-            <Button onClick={publishEvent} variant='contained' color='success' sx={{mr:'10px'}}>Publish</Button>
+            <Button onClick={updateEvent} variant='contained' color='success' sx={{mr:'10px'}}>Update</Button>
             <Button onClick={onClose} variant='contained'>Close</Button>
           </div>
 

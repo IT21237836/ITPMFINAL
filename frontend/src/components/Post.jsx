@@ -18,6 +18,7 @@ import {
 	TagCloseButton,
   } from '@chakra-ui/react'
   import StorefrontIcon from '@mui/icons-material/Storefront';
+  import EventIcon from '@mui/icons-material/Event';
 const Post = ({ post, postedBy }) => {
 	const [user, setUser] = useState(null);
 	const showToast = useShowToast();
@@ -138,6 +139,14 @@ const Post = ({ post, postedBy }) => {
 							<Tag size='md' variant='outline' colorScheme='blue'>
 								<TagLabel>From Marketplace</TagLabel>
 								<TagRightIcon as={StorefrontIcon} />
+							</Tag>
+							</Flex>
+						}
+						{post?.post_type === 2 && 
+							<Flex w={"full"} alignItems={"center"}>
+							<Tag size='md' variant='outline' colorScheme='blue'>
+								<TagLabel>Event</TagLabel>
+								<TagRightIcon as={EventIcon} />
 							</Tag>
 							</Flex>
 						}

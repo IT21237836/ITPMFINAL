@@ -9,7 +9,11 @@ import {
 	getUserPosts,
 	getSellerPosts,
 	createSellerPost,
-	updateSellerPost
+	updateSellerPost,
+	createEvent,
+	getEvents,
+	buyEventTicket,
+	updateEvent
 } from "../controllers/postController.js";
 import protectRoute from "../middlewares/protectRoute.js";
 
@@ -25,5 +29,9 @@ router.put("/reply/:id", protectRoute, replyToPost);
 router.get("/get-products-cy-seller-id/:sellerId", getSellerPosts);
 router.post("/create-seller-post", protectRoute, createSellerPost);
 router.put("/update-seller-post/:productId", protectRoute, updateSellerPost);
+router.post("/create-event", protectRoute, createEvent);
+router.get("/get-events-by-user-id/:userId", protectRoute, getEvents);
+router.put("/buy-event-ticket/:eventId/:userId", protectRoute, buyEventTicket);
+router.put("/update-event/:eventId", protectRoute, updateEvent);
 
 export default router;
