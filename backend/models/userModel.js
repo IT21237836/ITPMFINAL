@@ -41,6 +41,24 @@ const userSchema = mongoose.Schema(
 			type: Boolean,
 			default: false,
 		},
+		// seller attributes
+		user_type:{
+			type: String,
+			required: false,
+			default: "user",
+		},
+		shop_name:{
+			type: String,
+			required: false,
+		},
+		shop_address:{
+			type: String,
+			required: false,
+		},
+		nic:{
+			type: String,
+			required: false,
+		},
 	},
 	{
 		timestamps: true,

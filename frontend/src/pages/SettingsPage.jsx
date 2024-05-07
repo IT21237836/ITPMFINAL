@@ -1,10 +1,38 @@
+import React, {useEffect} from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button, Text, Divider } from "@chakra-ui/react";
 import useShowToast from "../hooks/useShowToast";
 import useLogout from "../hooks/useLogout";
+import { useState } from "react";
+import ActiveSellingModel from "../components/ActiveSellingModel";
+
 
 export const SettingsPage = () => {
+
+    const navigate = useNavigate();
     const showToast = useShowToast();
     const logout = useLogout();
+
+    const [user,setUser] = useState(JSON.parse(localStorage.getItem('user-backend')))
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const openSellingActiveModal = () => {
+        setIsModalOpen(true);
+    };
+
+    const closeSellingActiveModal = () => {
+        setIsModalOpen(false);
+        setUser(JSON.parse(localStorage.getItem('user-backend')))
+
+        if(JSON.parse(localStorage.getItem('user-backend'))?.user_type === "seller"){
+            navigate('/selling-dashboard');
+        }
+    };
+
+    useEffect(() => {
+      setUser(JSON.parse(localStorage.getItem('user-backend')))
+    }, [])
+    
 
     const freezeAccount = async () => {
         if (!window.confirm("Are you sure you want to freeze your account?")) return;
@@ -60,6 +88,11 @@ export const SettingsPage = () => {
         showToast("Info", "Update Email functionality will be implemented soon", "info");
     };
 
+
+    const viewSellingDashboard = async () => {
+        navigate('/selling-dashboard');
+    }
+
     return (
         <>
             <Text my={1} fontWeight={"bold"}>
@@ -89,6 +122,44 @@ export const SettingsPage = () => {
 
             <Divider my={4} />
 
+            {user?.user_type && 
+            <>
+                <Text my={1} fontWeight={"bold"}>
+                    Selling
+                </Text>
+                
+                <Text my={1}>
+                {user?.user_type === "user" ?
+                    "Click the button below to create seller account"
+                    :
+                    (user?.user_type === "seller" ?
+                        "Click the button below to view selling dashboard"
+                        :
+                        ""
+                    )   
+                }
+                </Text>
+                <Button size={"sm"} colorScheme="red" onClick={
+                    user?.user_type === "user" ? 
+                    openSellingActiveModal
+                    :
+                    viewSellingDashboard
+                }
+                mr={2}>
+                    {user?.user_type === "user"?
+                        "Active Selling Account"
+                        :
+                        (user?.user_type === "seller"?
+                            "View Selling Dashboard"
+                            :
+                            ""
+                        )
+                    }
+                </Button>
+
+                <Divider my={4} />
+            </>
+            }
             <Text my={1} fontWeight={"bold"}>
                 Change Password
             </Text>
@@ -106,6 +177,8 @@ export const SettingsPage = () => {
             <Button size={"sm"} colorScheme="blue" onClick={updateEmail}>
                 Update Email
             </Button>
+
+            <ActiveSellingModel isOpen={isModalOpen} onClose={closeSellingActiveModal} />
         </>
     );
 };

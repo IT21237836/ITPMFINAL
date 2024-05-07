@@ -91,6 +91,7 @@ const loginUser = async (req, res) => {
 			username: user.username,
 			bio: user.bio,
 			profilePic: user.profilePic,
+			user_type: user.user_type?user.user_type:"",
 		});
 	} catch (error) {
 		res.status(500).json({ error: error.message });
@@ -239,6 +240,34 @@ const freezeAccount = async (req, res) => {
 	}
 };
 
+const activeSellerUser = async (req, res) => {
+	const { shop_name, shop_address, nic } = req.body;
+
+	const {id} = req.params;
+
+	try {
+		let user = await User.findById(id);
+		if (!user) return res.status(400).json({ error: "User not found" });
+
+		if (req.params.id !== id.toString())
+			return res.status(400).json({ error: "You cannot update other user's profile" });
+
+		if (!shop_name || !shop_address || !nic) return res.status(400).json({ error: "Required fields are empty" });
+
+		user.shop_name = shop_name;
+		user.shop_address = shop_address;
+		user.nic = nic;
+		user.user_type = "seller"
+		await user.save();
+		console.log(user);
+		res.status(200).json({ success: true, user: user });
+
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+		console.log("Error in active seller: ", err.message);
+	}
+};
+
 export {
 	signupUser,
 	loginUser,
@@ -248,4 +277,5 @@ export {
 	getUserProfile,
 	getSuggestedUsers,
 	freezeAccount,
+	activeSellerUser
 };

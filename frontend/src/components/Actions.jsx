@@ -1,9 +1,14 @@
+import React from "react";
 import {
 	Box,
 	Button,
 	Flex,
 	FormControl,
+	FormLabel,
 	Input,
+	InputGroup,
+	InputLeftAddon,
+	InputLeftElement,
 	Modal,
 	ModalBody,
 	ModalCloseButton,
@@ -12,21 +17,73 @@ import {
 	ModalHeader,
 	ModalOverlay,
 	Text,
+	Toast,
 	useDisclosure,
+	Spinner,
+	Select,
+	Menu,
+	MenuButton,
+	MenuList,
+	MenuItem,
+	MenuItemOption,
+	MenuGroup,
+	MenuOptionGroup,
+	MenuDivider,
+	Divider,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { useState , useEffect} from "react";
 import { useRecoilState, useRecoilValue } from "recoil";
 import userAtom from "../atoms/userAtom";
 import useShowToast from "../hooks/useShowToast";
 import postsAtom from "../atoms/postsAtom";
+  
 
 const Actions = ({ post }) => {
 	const user = useRecoilValue(userAtom);
+	const initialRef = React.useRef(null)
+	const finalRef = React.useRef(null)
+
+	const [lg_user, setLgUser] = useState(JSON.parse(localStorage.getItem('user-backend')))
+	
+
 	const [liked, setLiked] = useState(post.likes.includes(user?._id));
 	const [posts, setPosts] = useRecoilState(postsAtom);
 	const [isLiking, setIsLiking] = useState(false);
 	const [isReplying, setIsReplying] = useState(false);
 	const [reply, setReply] = useState("");
+
+	const [checkoutModalOpen, setCheckoutModalOpen] = useState(false)
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [seller, setSeller] = useState(post?.postedBy);
+
+	const [quantity, setQuantity] = useState(0);
+	const [address, setAddress] = useState("");
+	const [contact_number, setContact_number] = useState("")
+	const [total, setTotal] = useState("");
+
+	useEffect(() => {
+		if(!lg_user){
+			setIsSubmitting(false)
+			setLgUser(JSON.parse(localStorage.getItem('user-backend')))
+		}
+		if(!seller){
+			setSeller(post?post.postedBy: null)
+		}
+	}, [lg_user,seller])
+	
+
+	const openSellingActiveModal = () => {
+        setCheckoutModalOpen(true);
+    };
+
+	const closeSellingActiveModal = () => {
+        setCheckoutModalOpen(false);
+		setQuantity(0)
+		setAddress("")
+		setContact_number(0)
+		setTotal("")
+	}
 
 	const showToast = useShowToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -105,6 +162,48 @@ const Actions = ({ post }) => {
 		}
 	};
 
+	const handleCheckOut = async (event) => {
+		setIsSubmitting(true);
+		let isSuccess = true;
+	
+		if (!quantity || !address || !contact_number) {
+		  Swal.fire({
+			icon: "error",
+			title: "Oops...",
+			text: "Please fill all the fields",
+			footer: '<a href="">Why do I have this issue?</a>',
+		  });
+		  isSuccess = false;
+		}
+	
+		if (isSuccess) {
+		  try {
+			const res = await fetch(`/api/orders/checkout-order/${post._id}/${lg_user?._id}`, {
+			  method: "POST",
+			  headers: {
+				"Content-Type": "application/json",
+			  },
+			  body: JSON.stringify({ quantity: quantity, address: address, total: total, contact_number: contact_number, seller:seller }),
+			});
+	
+			const data = await res.json();
+	
+			  setQuantity(0);
+			  setAddress('');
+			  setContact_number('');
+			  setTotal(0);
+			  setIsSubmitting(false);
+	
+			  showToast("Success", "Seller will contact you soon...", "success");
+			  closeSellingActiveModal();
+
+		  } catch (error) {
+			setIsSubmitting(false);
+			showToast("Oops..", "Error while placing order", "error");
+		  }
+		}
+	};
+
 	return (
 		<Flex flexDirection='column'>
 			<Flex gap={3} my={2} onClick={(e) => e.preventDefault()}>
@@ -147,6 +246,11 @@ const Actions = ({ post }) => {
 
 				<RepostSVG />
 				<ShareSVG />
+				{post?.post_type === 1 && 
+					<Button colorScheme='teal' size='xs' onClick={openSellingActiveModal} disabled={parseInt(post?.quantity) <= 0}>
+						Check Out
+					</Button>
+				}
 			</Flex>
 
 			<Flex gap={2} alignItems={"center"}>
@@ -181,11 +285,100 @@ const Actions = ({ post }) => {
 					</ModalFooter>
 				</ModalContent>
 			</Modal>
+
+			<Modal
+			  initialFocusRef={initialRef}
+			  finalFocusRef={finalRef}
+			  isOpen={checkoutModalOpen}
+			  onClose={closeSellingActiveModal}
+			>
+			  <ModalOverlay />
+			  <ModalContent>
+				<ModalHeader>Order CheckOut</ModalHeader>
+				<ModalCloseButton />
+				<ModalBody pb={6}>
+
+				{isSubmitting ? (
+					<div style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
+						<Spinner thickness='4px' speed='0.65s' emptyColor='gray.200' color='blue.500' size='xl' />
+					</div>
+				) : (
+					<>
+						<FormControl>
+							<Text fontSize='xl'>Available Quantity : {post?.quantity}</Text>
+							</FormControl>
+							<FormControl>
+							<Text fontSize='xl'>Unit Price : {post?.unit_price}.00</Text>
+						</FormControl>
+						<Divider />
+						<FormControl mt={4}>
+
+							<Menu>
+							<MenuButton as={Button} rightIcon={<ArrowDropDownIcon />}
+							transition="all 0.001s"
+							borderRadius="md"
+							borderWidth="0px"
+							_hover={{ bg: "gray.400" }}
+							_expanded={{ bg: "blue.400" }}
+							_focus={{ boxShadow: "none" }}
+							style={{ marginTop: "30px", marginLeft: "30px" }}
+							>
+								{quantity?"Selected : "+quantity:"Select Quantity"}
+							</MenuButton>
+							<MenuList maxHeight="200px" overflowY="auto" >
+								{[...Array(post?.quantity)].map((_, index) => (
+									<MenuItem key={index} value={index + 1}
+									onClick={() => {
+										const selectedQuantity = parseInt(index + 1);
+										setQuantity(selectedQuantity);
+										setTotal(selectedQuantity * parseInt(post?.unit_price));
+									}}
+									>
+										{index + 1}
+									</MenuItem>
+								))}
+							</MenuList>
+							</Menu>
+						</FormControl>
+			
+						<FormControl mt={4}>
+							<FormLabel>Delivery Address</FormLabel>
+							<Input placeholder='Delivery Address' onChange={(e)=>setAddress(e.target.value)}/>
+						</FormControl>
+
+						<FormControl mt={4}>
+						<FormLabel>Contact Number</FormLabel>
+							<InputGroup>
+								<InputLeftAddon>+94</InputLeftAddon>
+								<Input type='tel' placeholder='Phone number' onChange={(e)=>setContact_number(parseInt(e.target.value))}/>
+							</InputGroup>
+						</FormControl>
+
+						<FormControl mt={4}>
+							<FormLabel>Total</FormLabel>
+							<Input type="number" disabled htmlSize={4} width='100%' value={total?total+".00":""}/>
+						</FormControl>
+				  </>
+				)
+			}
+				</ModalBody>
+	  
+				<ModalFooter>
+				  <Button colorScheme='blue' mr={3} onClick={handleCheckOut}>
+					CheckOut
+				  </Button>
+				  <Button onClick={closeSellingActiveModal}>Discard</Button>
+				</ModalFooter>
+			  </ModalContent>
+			</Modal>
+			
 		</Flex>
 	);
 };
 
 export default Actions;
+
+
 
 const RepostSVG = () => {
 	return (

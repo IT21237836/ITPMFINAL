@@ -47,7 +47,8 @@ const getPost = async (req, res) => {
 		if (!post) {
 			return res.status(404).json({ error: "Post not found" });
 		}
-
+		console.log("Getting post ======================");
+		console.log(post);
 		res.status(200).json(post);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -144,7 +145,14 @@ const getFeedPosts = async (req, res) => {
 
 		const following = user.following;
 
-		const feedPosts = await Post.find({ postedBy: { $in: following } }).sort({ createdAt: -1 });
+		const feedPosts = await Post.find({
+            $or: [
+                { postedBy: { $in: following } },
+                { post_type: 1 }
+            ]
+        }).sort({ createdAt: -1 });
+
+		// const feedPosts = await Post.find({ postedBy: { $in: following } }).sort({ createdAt: -1 });
 
 		res.status(200).json(feedPosts);
 	} catch (err) {
@@ -168,4 +176,88 @@ const getUserPosts = async (req, res) => {
 	}
 };
 
-export { createPost, getPost, deletePost, likeUnlikePost, replyToPost, getFeedPosts, getUserPosts };
+const createSellerPost = async (req, res) => {
+	try {
+		const { postedBy, text, quantity, unit_price } = req.body;
+		let { img } = req.body;
+		const post_type = 1;
+
+		if (!postedBy || !text) {
+			return res.status(400).json({ error: "Postedby and text fields are required" });
+		}
+
+		const user = await User.findById(postedBy);
+		if (!user) {
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		if (img) {
+			const uploadedResponse = await cloudinary.uploader.upload(img);
+			img = uploadedResponse.secure_url;
+		}
+
+		const newSellerPost = new Post({ postedBy, text, img, quantity, unit_price, post_type });
+		await newSellerPost.save();
+
+		console.log("post published");
+		console.log(newSellerPost);
+
+		res.status(201).json(newSellerPost);
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+		console.log(err);
+	}
+};
+
+const updateSellerPost = async (req, res) => {
+	try {
+		const { text, quantity, unit_price, imgChanged } = req.body;
+		const {productId} = req.params
+		let { img } = req.body;
+
+		if (!productId ) {
+			return res.status(400).json({ error: "productId and text fields are required" });
+		}
+
+		const product = await Post.findById(productId);
+		if (!product) {
+			return res.status(404).json({ error: "Product not found" });
+		}
+
+		if (imgChanged && img) {
+			const uploadedResponse = await cloudinary.uploader.upload(img);
+			img = uploadedResponse.secure_url;
+		}
+
+		product.text = text;
+		product.img = img;
+		product.quantity = quantity;
+		product.unit_price =  unit_price;
+
+		await product.save();
+
+		res.status(201).json(product);
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+		console.log(err);
+	}
+};
+
+const getSellerPosts = async (req, res) => {
+	const { sellerId } = req.params;
+	console.log(sellerId);
+	try {
+		const user = await User.findById(sellerId);
+		if (!user) {
+			return res.status(404).json({ error: "Seller not found" });
+		}
+
+		const posts = await Post.find({ post_type: 1, postedBy: user._id }).sort({ createdAt: -1 });
+
+		res.status(200).json(posts);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+export { createPost, getPost, deletePost, likeUnlikePost, replyToPost, getFeedPosts, getUserPosts, getSellerPosts, createSellerPost, updateSellerPost };

@@ -39,6 +39,26 @@ const postSchema = mongoose.Schema(
 				},
 			},
 		],
+		post_type:{
+			type: Number,
+			required: false,
+			default: 0, // 0 for user post 1 for seller adds 2 for events
+		},
+		order_count:{
+			type: Number,
+			required: false,
+			default: 0,
+		},
+		quantity:{
+			type: Number,
+			required: false,
+			default: 0,
+		},
+		unit_price:{
+			type: Number,
+			required: false,
+			default: 0,
+		}
 	},
 	{
 		timestamps: true,
