@@ -10,7 +10,14 @@ import { DeleteIcon } from "@chakra-ui/icons";
 import { useRecoilState, useRecoilValue } from "recoil";
 import userAtom from "../atoms/userAtom";
 import postsAtom from "../atoms/postsAtom";
-
+import {
+	Tag,
+	TagLabel,
+	TagLeftIcon,
+	TagRightIcon,
+	TagCloseButton,
+  } from '@chakra-ui/react'
+  import StorefrontIcon from '@mui/icons-material/Storefront';
 const Post = ({ post, postedBy }) => {
 	const [user, setUser] = useState(null);
 	const showToast = useShowToast();
@@ -126,6 +133,14 @@ const Post = ({ post, postedBy }) => {
 							</Text>
 							<Image src='/verified.png' w={4} h={4} ml={1} />
 						</Flex>
+						{post?.post_type === 1 && 
+							<Flex w={"full"} alignItems={"center"}>
+							<Tag size='md' variant='outline' colorScheme='blue'>
+								<TagLabel>From Marketplace</TagLabel>
+								<TagRightIcon as={StorefrontIcon} />
+							</Tag>
+							</Flex>
+						}
 						<Flex gap={4} alignItems={"center"}>
 							<Text fontSize={"xs"} width={36} textAlign={"right"} color={"gray.light"}>
 								{formatDistanceToNow(new Date(post.createdAt))} ago
@@ -143,7 +158,7 @@ const Post = ({ post, postedBy }) => {
 					)}
 
 					<Flex gap={3} my={1}>
-						<Actions post={post} />
+						<Actions post={post}/>
 					</Flex>
 				</Flex>
 			</Flex>
