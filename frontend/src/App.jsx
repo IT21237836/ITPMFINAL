@@ -28,9 +28,9 @@ function App() {
 			<Container maxW={pathname === "/" ? { base: "620px", md: "900px" } : "620px"}>
 				<Header />
 				<Routes>
-					<Route path='/' element={<HomePage />} />
-					<Route path='/auth' element={<AuthPage />} />
-					<Route path='/update' element={<UpdateProfilePage />} />
+					<Route path='/' element={user ? <HomePage /> : <Navigate to='/auth' />} />
+					<Route path='/auth' element={!user ? <AuthPage /> : <Navigate to='/' />} />
+					<Route path='/update' element={user ? <UpdateProfilePage /> : <Navigate to='/auth' />} />
 
 					<Route
 						path='/:username'
@@ -46,8 +46,8 @@ function App() {
 						}
 					/>
 					<Route path='/:username/post/:pid' element={<PostPage />} />
-					<Route path='/chat' element={<ChatPage /> } />
-					<Route path='/settings' element={<SettingsPage /> } />
+					<Route path='/chat' element={user ? <ChatPage /> : <Navigate to={"/auth"} /> } />
+					<Route path='/settings' element={user ? <SettingsPage /> : <Navigate to={"/auth"} />} />
 					<Route path='/event' element={<EventPage />} />
 				</Routes>
 			</Container>
